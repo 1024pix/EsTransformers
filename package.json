@@ -1,0 +1,65 @@
+{
+    "name": "pix-bot-modtrans",
+    "version": "0.0.1",
+    "description": "PIX codemod that convert CommonJS(require/exports) to ES Modules(import/export)",
+    "files": [
+        "dist"
+    ],
+    "source": "transforms/index.js",
+    "main": "index.js",
+    "scripts": {
+        "build": "microbundle",
+        "test": "jest",
+        "updateSnapshot": "jest -u",
+        "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\""
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/azu/commonjs-to-es-module-codemod.git"
+    },
+    "keywords": [
+        "amd",
+        "es6",
+        "modules",
+        "import",
+        "require",
+        "export",
+        "exports",
+        "codemod",
+        "jscodeshift"
+    ],
+    "author": "Team Captain",
+    "license": "ISC",
+    "jest": {
+        "roots": [
+            "transforms"
+        ]
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.10.5",
+        "@babel/core": "^7.0.0",
+        "@babel/preset-env": "^7.0.0",
+        "babel-core": "^7.0.0-bridge.0",
+        "babel-jest": "^29.7.0",
+        "coveralls": "^3.1.1",
+        "jest": "^29.7.0",
+        "lint-staged": "^15.2.0",
+        "microbundle": "^0.15.1",
+        "prettier": "^3.1.1",
+        "typescript": "^5.3.3"
+    },
+    "dependencies": {
+        "jscodeshift": "^0.15.1"
+    },
+    "prettier": {
+        "singleQuote": false,
+        "printWidth": 120,
+        "tabWidth": 4,
+        "trailingComma": "none"
+    },
+    "lint-staged": {
+        "*.{js,jsx,ts,tsx,css}": [
+            "prettier --write"
+        ]
+    }
+}
