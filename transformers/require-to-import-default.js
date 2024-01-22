@@ -1,123 +1,70 @@
 /**
- * Transform
+ * Transforme
  *
  *   const Lib = require('lib');
  *
- * to
+ * en
  *
  *   import Lib from 'lib';
  *
- * ⚠ Only on global context
+ * ⚠ Uniquement dans le contexte global
  */
-
 
 import Logger from "./utils/logger";
 import searchNodes from "./utils/search";
-function transformer(file, api, options) {
+
+/**
+ * Transforme les déclarations 'require' en déclarations 'import default'.
+ *
+ * @param {object} file - L'objet AST représentant le fichier source.
+ * @param {object} api - L'API jscodeshift.
+ * @param {object} options - Options de transformation.
+ * @returns {string} - Le code source modifié.
+ */
+function requireToImportDefault(file, api, options) {
     const j = api.jscodeshift;
     const logger = new Logger(file, options);
 
     /**
-     * Search function
+     * Fonction de recherche des noeuds 'require'.
      */
-
     const nodes = searchNodes(j, file.source);
 
     logger.log(`${nodes.length} nodes will be transformed`);
 
     /**
-     * Replace function
+     * Fonction de remplacement.
      */
     return nodes
         .replaceWith((path) => {
             const rest = [];
             const imports = [];
+
             for (const declaration of path.node.declarations) {
                 const isRequire =
                     declaration.init !== null &&
                     declaration.init.type === "CallExpression" &&
                     declaration.init.callee.name === "require";
-                const isRequireWithProp = isRequire && declaration.init.property !== undefined;
-                if (isRequireWithProp) {
+
+                if (isRequire) {
                     if (declaration.id.type === "Identifier") {
-                        // default import
-                        const sourcePath = declaration.init.arguments.shift();
-                        if (declaration.init.arguments.length) {
-                            logger.error(
-                                `${logger.lines(declaration)} too many arguments.` + "Aborting transformation"
-                            );
-                            return file.source;
-                        }
-                        if (!j.Literal.check(sourcePath)) {
-                            logger.error(
-                                `${logger.lines(declaration)} bad argument.` +
-                                    "Expecting a string literal, got " +
-                                    j(sourcePath).toSource() +
-                                    "`. Aborting transformation"
-                            );
-                            return file.source;
-                        }
-                        if (declaration?.init?.property.type === "Identifier") {
-                            logger.log("Unknown declaration", declaration);
-                        }
-                        const specify = j.importSpecifier(declaration.init.property, declaration?.init?.property);
-                        imports.push(j.importDeclaration([specify], sourcePath));
-                    } else if (declaration.id.type === "ObjectPattern") {
-                        // named import
-                        // const { c } = require("mod").a
-                        logger.log("Does not support pattern", declaration);
-                    }
-                } else if (isRequire) {
-                    if (declaration.id.type === "Identifier") {
-                        // default import
+                        // Import par défaut
                         const importSpecifier = j.importDefaultSpecifier(declaration.id);
                         const sourcePath = declaration.init.arguments.shift();
-                        if (declaration.init.arguments.length) {
-                            logger.error(
-                                `${logger.lines(declaration)} too many arguments.` + "Aborting transformation"
-                            );
-                            return file.source;
-                        }
+
                         if (!j.Literal.check(sourcePath)) {
                             logger.error(
                                 `${logger.lines(declaration)} bad argument.` +
-                                    "Expecting a string literal, got " +
-                                    j(sourcePath).toSource() +
-                                    "`. Aborting transformation"
+                                    ` Expecting a string literal, got ${j(sourcePath).toSource()}` +
+                                    " Aborting transformation"
                             );
                             return file.source;
                         }
+
                         imports.push(j.importDeclaration([importSpecifier], sourcePath));
                     } else if (declaration.id.type === "ObjectPattern") {
-                        /**
-                         * named import
-                         * const { specifierA, specifierB } = require("mod")
-                         * ObjectPattern
-                         * 
-                         */
-
-                        const specifiers = declaration.id.properties.map((property) => {
-                            const key = j.identifier(property.key.name);
-                            const value = j.identifier(property.value.name);
-                            return j.importSpecifier(key, value);
-                        });
-                        const sourcePath = declaration.init.arguments.shift();
-                        if (declaration.init.arguments.length) {
-                            logger.error(
-                                `${logger.lines(declaration)} too many arguments.` + "Aborting transformation"
-                            );
-                            return file.source;
-                        }
-                        if (!j.Literal.check(sourcePath)) {
-                            logger.error(
-                                `${logger.lines(declaration)} bad argument.` +
-                                    "Expecting a string literal, got " +
-                                    j(sourcePath).toSource() +
-                                    "`. Aborting transformation"
-                            );
-                            return file.source;
-                        }
-                        imports.push(j.importDeclaration(specifiers, sourcePath));
+                        // Import nommé (non supporté)
+                        logger.log("Does not support pattern", declaration);
                     }
                 } else {
                     rest.push(declaration);
@@ -132,9 +79,10 @@ function transformer(file, api, options) {
                 logger.warn(`${logger.lines(path.node)} introduced leftover`);
                 return [...imports, j.variableDeclaration(path.node.kind, rest)];
             }
+
             return imports;
         })
         .toSource();
 }
 
-export default transformer;
+export default requireToImportDefault;
